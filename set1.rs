@@ -87,6 +87,14 @@ fn block_encrypt(k : &[u8], m : &[u8]) -> Vec<u8> {
     range(0, m.len()).zip(m.iter()).map(|(i,b)| b ^ k[i%k.len()]).collect()
 }
 
+fn hamming_distance(m1 : &[u8], m2 : &[u8]) -> uint {
+    let d = m1.iter().zip(m2.iter()).map(|(&b1, &b2)| {
+        (b1 ^ b2).count_ones() as uint
+    }).sum();
+
+    return d;
+}
+
 fn ch1() {
     println!("------- 1 ---------");
     let hex = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d";
@@ -135,10 +143,20 @@ fn ch5() {
     assert!("0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f" == c.as_slice());
 }
 
+fn ch6() {
+    println!("------- 6 ---------");
+    let m1 = "this is a test".as_bytes();
+    let m2 = "wokka wokka!!!".as_bytes();
+    let h_test = hamming_distance(m1, m2);
+    println!("h_test: {}", h_test);
+    assert!(37 == h_test);
+}
+
 fn main() {
     ch1();
     ch2();
     ch3();
     ch4();
     ch5();
+    ch6();
 }
