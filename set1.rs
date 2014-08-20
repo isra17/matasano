@@ -1,6 +1,6 @@
 extern crate serialize;
 use serialize::hex::{FromHex, ToHex};
-use serialize::base64::{ToBase64, STANDARD};
+use serialize::base64::{ToBase64, FromBase64, STANDARD};
 use std::io::BufferedReader;
 use std::io::File;
 use std::iter::AdditiveIterator;
@@ -13,6 +13,12 @@ struct ByteAnalysisResult {
     score : f32,
     message : Vec<u8>
 }
+
+struct BlockAnalysisResult {
+    key : Vec<u8>,
+    message : Vec<u8>
+}
+
 
 
 fn hex_to_base64(hex : &str) -> String {
@@ -95,6 +101,32 @@ fn hamming_distance(m1 : &[u8], m2 : &[u8]) -> uint {
     return d;
 }
 
+fn guess_keysize(c : &Vec<u8>) -> Vec<(uint, f32)> {
+    let keysize_distance = range(2, 40).map(|n| {
+        let ds = range(0, c.len()/n - 1).map(|i| hamming_distance(c.slice(i*n,(i+1)*n), c.slice((i+1)*n, (i+2)*n)) as uint).collect::<Vec<uint>>();
+        let l = ds.len();
+        ds.move_iter().sum() as f32 / (l*n) as f32
+    });
+
+    let mut keysize_pair : Vec<(uint, f32)> = range(2u, 40u).zip(keysize_distance).collect();
+    keysize_pair.sort_by(|&(_,a),&(_,b)| a.partial_cmp(&b).unwrap_or(Equal));
+    keysize_pair
+}
+
+fn guess_block_key(c : &Vec<u8>, keysize : uint) -> BlockAnalysisResult {
+    let block_count = c.len() / keysize;
+
+    let key : Vec<u8> = range(0, keysize).map(|i| {
+        let partial_c = range(0, block_count-1).map(|n| c[n*keysize + i]).collect::<Vec<u8>>();
+        let analysis = best_key(partial_c.as_slice());
+        analysis.key
+    }).collect();
+
+    let message = block_encrypt(key.as_slice(), c.as_slice());
+
+    BlockAnalysisResult { key: key, message: message }
+}
+
 fn ch1() {
     println!("------- 1 ---------");
     let hex = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d";
@@ -150,6 +182,22 @@ fn ch6() {
     let h_test = hamming_distance(m1, m2);
     println!("h_test: {}", h_test);
     assert!(37 == h_test);
+
+    let path = Path::new("./6.txt");
+    let mut file = BufferedReader::new(File::open(&path));
+    let c = file.read_to_string().unwrap().as_slice().from_base64().unwrap();
+    let keysizes = guess_keysize(&c);
+
+    for &(ks, score) in keysizes.iter() {
+        println!("{}->{}", ks, score);
+    }
+    let (keysize, _) = keysizes[0];
+    let analysis = guess_block_key(&c, keysize);
+    let key = String::from_utf8(analysis.key).unwrap();
+    println!("key: {}", key);
+    print_message(analysis.message);
+
+    assert!("Terminator X: Bring the noise" == key.as_slice());
 }
 
 fn main() {
