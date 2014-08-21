@@ -1,9 +1,11 @@
 extern crate serialize;
+extern crate openssl;
 use serialize::hex::{FromHex, ToHex};
 use serialize::base64::{ToBase64, FromBase64, STANDARD};
 use std::io::BufferedReader;
 use std::io::File;
 use std::iter::AdditiveIterator;
+use openssl::crypto::symm::{decrypt, AES_128_ECB};
 
 static LETTER_FREQUENCY: &'static [f32] = & [0.0855, 0.0160, 0.0316, 0.0387, 0.1210, 0.0218, 0.0209, 0.0496, 0.0733, 0.0022, 0.0081, 0.0421, 0.0253, 0.0717, 0.0747, 0.0207, 0.0010, 0.0633, 0.0673, 0.0894, 0.0268, 0.0106, 0.0183, 0.0019, 0.0172, 0.0011];
 
@@ -200,6 +202,17 @@ fn ch6() {
     assert!("Terminator X: Bring the noise" == key.as_slice());
 }
 
+fn ch7() {
+    println!("------- 7 ---------");
+    let path = Path::new("./7.txt");
+    let mut file = BufferedReader::new(File::open(&path));
+    let c = file.read_to_string().unwrap().as_slice().from_base64().unwrap();
+    let k = "YELLOW SUBMARINE".as_bytes();
+
+    let m = decrypt(AES_128_ECB, k, Vec::new(), c.as_slice());
+    print_message(m);
+}
+
 fn main() {
     ch1();
     ch2();
@@ -207,4 +220,5 @@ fn main() {
     ch4();
     ch5();
     ch6();
+    ch7();
 }

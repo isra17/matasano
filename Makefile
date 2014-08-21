@@ -1,5 +1,5 @@
 all:
-	rustc set1.rs
+	rustc -L . set1.rs
 
 run:
 	./set1
