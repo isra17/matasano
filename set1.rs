@@ -129,6 +129,17 @@ fn guess_block_key(c : &Vec<u8>, keysize : uint) -> BlockAnalysisResult {
     BlockAnalysisResult { key: key, message: message }
 }
 
+fn has_similar_block(data : Vec<u8>) -> bool {
+    let n = data.len()/16;
+    let blocks = range(0, n).map(|i| data.slice(i*16, (i+1)*16) ).collect::<Vec<&[u8]>>();
+
+    range(0, n).zip(blocks.iter()).any(|(i, block)| {
+        let mut it = blocks.iter();
+        it.nth(i+1);
+        it.any(|oth| block == oth)
+    })
+}
+
 fn ch1() {
     println!("------- 1 ---------");
     let hex = "49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d";
@@ -213,6 +224,17 @@ fn ch7() {
     print_message(m);
 }
 
+fn ch8() {
+    println!("------- 8 ---------");
+    let path = Path::new("./8.txt");
+    let mut file = BufferedReader::new(File::open(&path));
+    let potentials_ecb = file.lines()
+        .map(|l| l.unwrap())
+        .filter(|l| has_similar_block(l.as_slice().trim().from_hex().unwrap()))
+        .collect::<Vec<String>>();
+    println!("Potential ecb ({}): {}", potentials_ecb.len(), potentials_ecb[0]);
+}
+
 fn main() {
     ch1();
     ch2();
@@ -221,4 +243,5 @@ fn main() {
     ch5();
     ch6();
     ch7();
+    ch8();
 }
